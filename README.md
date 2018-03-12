@@ -8,5 +8,5 @@ rpi.tv is the backend system which is meant to control one or more raspberry pi 
 
 <b>Technology</b>
 <br>
-> This project is written in Python and heavily utilizes the Flask micro-framework. While other technologies may have been better suited, I honestly just wanted to learn Flask and Python is my go-to. For better or worse, Python is my hammer and everything just tends to be a nail.<br><br>
+> This project is written in Python and heavily utilizes the Flask micro-framework with some Celery and Redis for asynchronous tasking. While other technologies may have been better suited, I honestly just wanted to learn Flask and Python is my go-to. For better or worse, Python is my hammer and everything just tends to be a nail.<br><br>
 To facilitate communication between rpi.tv backend and the rpi.tv endpoints, this project utilizes simple HTTP REST API calls. This backed hosts the API while the endpoint gathers from and sends updates to it.
