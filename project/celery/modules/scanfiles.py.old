@@ -1,0 +1,80 @@
+from datetime import datetime
+from app import db, create_app
+from app.models import File
+import os
+
+def scanfiles():
+    app = create_app()
+
+    videxts = ['.mkv', '.mpg', '.avi', '.mp4']
+
+    # Find all relevant media files
+    discovered_files = []
+    folder = '/mnt/media'
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            ext = os.path.splitext(file)[1]
+            if ext.lower() in videxts:
+                filepath = os.path.join(root, file)
+                if filepath not in discovered_files:
+                    discovered_files.append(filepath)
+
+    print("DEBUG: discovered_files: len: " + str(len(discovered_files)))
+
+    with app.app_context():
+        # Get all existing media from database.
+        existing = File.query.all()
+
+        # Determine which items in database were and were not found (active)
+        existing_filepaths = []
+#        active_ids = []
+#        inactive_ids = []
+        for file in existing:
+            existing_filepaths.append(file.filepath)
+#            if file.filepath not in discovered_files:
+#                inactive_ids.append(file.id)
+#            else:
+#                active_ids.append(file.id)
+            if file.filepath in discovered_files:
+                file.set_active(True)
+            else:
+                file.set_active(False)
+            file.seen()
+#            db.session.commit()
+
+
+#        # Determine which discovered files are NEW
+#        net_new = []
+#        for filepath in discovered_files:
+#            if filepath not in existing_filepaths:
+#                net_new.append(filepath)
+#
+#        # Add NEW items to database
+#        for filepath in net_new:
+#            file = File(filepath=filepath)
+#            db.session.add(file)
+#            db.session.commit()
+
+        for filepath in discovered_files:
+            if filepath not in existing_filepaths:
+                file = File(filepath=filepath)
+                db.session.add(file)
+#                db.session.commit()
+
+#        # Mark all existing items which were not discovered as inactive
+#        for inactive_id in inactive_ids:
+#            file = File.query.filter_by(id=inactive_id).first()
+#            if file is not None:
+#                if file.is_active():
+#                    file.set_active(False)
+#                    db.session.commit()
+
+#        # Mark all active items which were previously marked inactive, as active
+#        for active_id in active_ids:
+#            file = File.query.filter_by(id=active_id).first()
+#            if file is not None:
+#                if not file.is_active():
+#                    file.set_active(True)
+#                    db.session.commit()
+#                file.seen()
+        db.session.commit()

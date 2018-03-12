@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block app_content %}
+<h1>Controller</h1>
+<form class="form form-horizontal" method="post" role="form">
+ <div class="row">
+  <div class="col-md-4">
+    {{ form.hidden_tag() }}
+
+    {% if endpoints %}
+    {{ wtf.form_field(form.play) }}
+    {{ wtf.form_field(form.pause) }}
+    {{ wtf.form_field(form.stop) }}
+    {{ wtf.form_field(form.skip) }}
+    {% for endpoint in endpoints %}
+  </div>
+  <div class="col-md-8">
+    <div class="checkbox">
+      <input type="checkbox" name="{{ endpoint[0] }}" value="checked">
+      {{ endpoint[1] }} : <code>{{ endpoint[0] }}</code><br>
+      State: {{ endpoint[2] }}<br>
+      Next:{{ endpoint[3] }}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>No Endpoints appear to be active.</p>
+    <p>Please verify your RaspberryPi is configured and successfully connecting.</p>
+    <p>
+       Once you have at least one endpoint configured and active, refresh this
+       page. The list of active endpoints will automatically populate.
+    </p>
+    {% endif %}
+  </div>
+ </div>
+</form>
+{% endblock %}

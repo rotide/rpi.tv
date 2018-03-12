@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block app_content %}
+<script type="text/javascript" src="{{ url_for('web.static', filename='video-filter.js') }}"></script>
+
+<div>
+    <h1>Edit Channel</h1>
+</div>
+<div class="form">
+    <form method="post" role="form">
+        {{ form.hidden_tag() }}
+        <div class="row">
+            <div class="col-xs-1">
+                <b>Radio</b>
+            </div>
+            <div class="col-xs-3">
+                <b>Channel</b>
+            </div>
+            <div class="col-xs-1">
+                <b>Total/Active</b>
+            </div>
+            <div class="col-xs-4">
+                <b>Buttons</b>
+            </div>
+        </div>
+        {% if channels %}
+        {% for channel in channels %}
+        <div class="row">
+            <div class="col-xs-1">
+                <input type="radio" name="options" value="{{ channel.id }}">
+            </div>
+            <div class="col-xs-3">
+                <input type="text" class="form-control" name="text-rename-{{ channel.id }}" value="{{ channel.name }}">
+            </div>
+            <div class="col-xs-1">
+                <p class="text-center">{{ channel.total_videos }}/{{ channel.active_videos }}</p>
+            </div>
+            <div class="col-xs-4">
+                <input type="submit" class="btn btn-default" value="Delete" name="button-delete-{{ channel.id }}">
+                <input type="submit" class="btn btn-default" value="Rename" name="button-rename-{{ channel.id }}">
+                &nbsp;
+                <input type="submit" class="btn btn-default" value="Add" name="button-add-{{ channel.id }}">
+                <input type="submit" class="btn btn-default" value="Remove" name="button-remove-{{ channel.id }}">
+            </div>
+        </div>
+        <br>
+        {% endfor %}
+        <input type="text" id="filterText" onkeyup="searchTable()">
+        <table id="filterTable">
+            <tr><td>Alpha</td><td>Red</td></tr>
+            <tr><td>Beta</td><td>Green</td></tr>
+            <tr><td>Charlie</td><td>Red</td></tr>
+            <tr><td>Delta</td><td>Green</td></tr>
+        </table>
+        {% endif %}
+    </form>
+</div>
+
+
+
+{% endblock %}

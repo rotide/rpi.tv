@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block app_content %}
+<script type="text/javascript" src="{{ url_for('web.static', filename='video-filter.js') }}"></script>
+
+<h1>Create Channel</h1>
+<form class="form form-horizontal" method="post" role="form">
+ <div class="row">
+  <div class="col-md-4">
+    {{ form.hidden_tag() }}
+
+    {{ wtf.form_field(form.name) }}
+    {{ wtf.form_field(form.submit) }}
+  </div>
+ </div>
+ <br>
+ {% if dirs %}
+ {% for dir, videos in dirs.items() %}
+ <div class="row">
+  <div class="col-md-12">
+    <p><b>{{ dir }}</b><br>
+    {% for video in videos %}
+    <div class="checkbox">
+      <input type="checkbox" name="{{ video[0] }}" value="checked">{{ video[1] }}<br>
+    </div>
+    {% endfor %}
+    </p>
+  </div>
+ </div>
+ {% endfor %}
+ {% endif %}
+</form>
+{% endblock %}

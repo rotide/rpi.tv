@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block app_content %}
+<h1>Scan</h1>
+<form class="form form-horizontal" method="post" role="form">
+ <div class="row">
+  <div class="col-md-4">
+    {{ form.hidden_tag() }}
+
+    {{ wtf.form_field(form.scan) }}
+  </div>
+  <div class="col-md-8">
+    Total Videos (Active): {{ active }}<br>
+    Total Videos: {{ active + inactive }}
+  </div>
+ </div>
+</form>
+{% endblock %}

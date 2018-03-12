@@ -1,0 +1,12 @@
+#!/bin/bash
+
+export FLASK_APP=manager.py
+export FLASK_DEBUG=0
+
+# Set Application specific variables
+PORT=5000
+HOST="0.0.0.0"
+
+# Launch Flask App
+python -m flask run --host=$HOST --port=$PORT
+

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Launch Celery
+celery worker -A project.celery.tasks --loglevel=debug
+#celery worker -A project.celery.tasks --loglevel=info
