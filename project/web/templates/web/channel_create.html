@@ -16,21 +16,38 @@
                 {{ wtf.form_field(form.submit) }}
             </div>
         </div>
-        <br>
         {% if dirs %}
-        {% for dir, videos in dirs.items() %}
+        <hr>
         <div class="row">
-            <div class="col-md-12" id="video">
-                <b>{{ dir }}</b>
-                <br>
-                {% for video in videos %}
-                <div class="checkbox">
-                    <input type="checkbox" name="{{ video[0] }}" value="checked">{{ video[1] }}<br>
-                </div>
-                {% endfor %}
+            <div class="col-md-4">
+                <label for="filterText">Video Filter</label>
+                <input class="form-control" type="text" id="filterText" onkeyup="searchTable()">
             </div>
         </div>
-        {% endfor %}
+        <br>
+        <table class="table table-condensed" id="filterTable">
+            <thead></thead>
+            <tbody>
+            {% for dir, videos in dirs.items() %}
+                <tr>
+                    <td>
+                        <div class="container">
+                            <b>{{ dir }}</b>
+                        </div>
+                    </td>
+                </tr>
+                {% for video in videos %}
+                <tr>
+                    <td>
+                        <div class="checkbox">
+                            <input type="checkbox" name="{{ video[0] }}" value="checked">{{ video[1] }}<br>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% endfor %}
+            </tbody>
+        </table>
         {% endif %}
     </form>
 </div>
