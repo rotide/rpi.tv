@@ -94,8 +94,14 @@ class Channel(db.Model):
     def __repr__(self):
         return '<Channel {}>'.format(self.id)
 
+    def get_id(self):
+        return self.id
+
     def get_name(self):
         return self.name
+
+    def get_owner_username(self):
+        return self.owner.username
 
     def set_name(self, s):
         self.name = s

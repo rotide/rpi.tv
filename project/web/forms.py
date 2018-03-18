@@ -30,4 +30,4 @@ class ChannelCreateForm(FlaskForm):
     #        raise ValidationError('Channel name already in use. Please user another.')
 
 class ChannelEditForm(FlaskForm):
-    submit = SubmitField(label='Delete')
+    pass

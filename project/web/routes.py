@@ -74,9 +74,9 @@ def channel_create():
         return redirect(url_for('web.channel_create'))
     return render_template('web/channel_create.html', form=form, dirs=dict)
 
-@bp.route('/channeleditor', methods=['GET', 'POST'])
+@bp.route('/channeleditorold', methods=['GET', 'POST'])
 @login_required
-def channel_edit():
+def channel_edit_old():
     form = ChannelEditForm()
 
     if form.validate_on_submit():
@@ -140,45 +140,127 @@ def channel_edit():
 
     return render_template('web/channel_edit.html', form=form, channels=channels_array)
 
-@bp.route('/channeleditorold', methods=['GET', 'POST'])
+@bp.route('/channeledit', methods=['GET', 'POST'])
 @login_required
-def channel_edit_old():
+def channel_edit():
     form = ChannelEditForm()
 
+    # Initialize variables which will be passed to render_template.
+    selected_channel = None
+    channel_videos = {}
+
     if form.validate_on_submit():
-        print(request.values)
+        print(request.form)
 
-        # If a radio button was selected
-        if 'options' in request.form:
-            selected = request.form['options']
-            # If the DELETE button was pressed.
-            if 'button-delete' in request.form:
-                channel = Channel.query.filter_by(id=selected, user_id=current_user.id).first()
-                # Verify no endpoints currently are set to the channel to be deleted.
-                endpoint = Endpoint.query.filter_by(current_channel_id=selected).first()
-                if endpoint is not None:
-                    # An endpoint is tuned in to the channel to be deleted, notify user.
-                    flash('An endpoint is set to your selected channel.  It can not be deleted at this time.')
-                else:
-                    if channel is not None:
-                        db.session.delete(channel)
-                        db.session.commit()
-                        flash('Channel deleted: ' + str(channel.name))
-            elif 'button-rename' in request.form:
-                channel = Channel.query.filter_by(id=selected, user_id=current_user.id).first()
-                channel.set_name('not implemented')
+        # If user selected a channel, get the channel ID from form data.
+        if request.form['select']:
+            selected_channel = request.form['select']
+        else:
+            selected_channel = None
 
-    channels = Channel.query.filter_by(user_id=current_user.id)
+        # Determine which form button was pressed and get the channel id associated with it (if applicable).
+        button_action = None
+        button_channel = None
+        for form_item in request.form:
+            if 'button-' in form_item:
+                button_array = form_item.split('-')
+                button_action = button_array[1].lower()
+                if len(button_array) == 3:
+                    button_channel = button_array[2]
+
+        print('BUTTON ACTION : ' + str(button_action))
+        print('BUTTON CHANNEL: ' + str(button_channel))
+
+        if button_action == 'delete':
+            # Get channel data and verify it's for the current user (input validation and authorization)
+            channel = Channel.query.filter_by(id=button_channel, user_id=current_user.id).first()
+
+            # Get any endpoints which may be currently set to the channel to be deleted.
+            endpoint = Endpoint.query.filter_by(current_channel_id=button_channel).first()
+            if endpoint is not None:
+                # An endpoint is tuned in to the channel to be deleted, notify user.
+                flash('An endpoint is set to your selected channel.  It can not be deleted at this time.')
+            else:
+                if channel is not None:
+                    # Clear channel's history from database.
+                    for history in History.query.filter_by(channel_id=button_channel).all():
+                        db.session.delete(history)
+                    # Clear channel from database.
+                    db.session.delete(channel)
+                    # Commit database changes.
+                    db.session.commit()
+                    flash('Channel deleted: ' + str(channel.name))
+
+                    # User selected channel has been deleted so we must unset the selected channel.
+                    selected_channel = None
+
+        elif button_action == 'rename':
+            print('BUTTON: RENAME')
+            rename_to = request.form['text-rename-' + str(button_channel)]
+            print("RenameTo: " + rename_to)
+            if rename_to.strip() is not '':
+                # Get channel from database.
+                channel = Channel.query.filter_by(id=button_channel, user_id=current_user.id).first()
+                if channel is not None:
+                    # Get channel's name for alerting purposes.
+                    rename_from = channel.name
+                    # Set channel's new name.
+                    channel.set_name(rename_to)
+                    # Commit database changes.
+                    db.session.commit()
+                    flash('Channel renamed from "' + rename_from + '" to "' + rename_to + '".')
+
+        # Pull channel/video information from database for web page rendering if a channel was selected.
+        if selected_channel:
+            # Get data for selected channel ID.
+            channel = Channel.query.filter_by(id=selected_channel).first()
+
+            if channel is not None:
+                # Generate array of video information from selected channel data
+                video_array = [
+                    [os.path.dirname(video.filepath),   # Video Directory
+                     video.id,                          # Video ID
+                     os.path.basename(video.filepath),  # Video Filename
+                     video.active]                      # Active (bool)
+                    for video in channel.videos
+                ]
+
+                for video in video_array:
+                    # If video directory not already in channel_videos...
+                    if video[0] not in channel_videos.keys():
+                        # Create directory key in dict.
+                        channel_videos[video[0]] = []
+                    # Append video data to dict key (folder).
+                    channel_videos[video[0]].append([video[1], video[2], video[3]])
+
+                # Sort each set of videos for each directory.
+                for directory in channel_videos.keys():
+                    channel_videos[directory].sort(key=lambda x: x[1])
+
+#    # Gather all Channels owned by the user.
+#    channels = Channel.query.filter_by(user_id=current_user.id).all()
+
+#    # Generate channel list which will be displayed to the user for channel selection.
+#    channels_array = []
+#    for channel in channels:
+#        channels_array.append([channel.id,
+#                               channel.name,
+#                               channel.owner.username])
+
+    channels = Channel.query.filter_by(user_id=current_user.id).all()
     channels_array = []
     for channel in channels:
         c = {}
-        c.update({'id':channel.id})
-        c.update({'name':channel.name})
-        c.update({'total_videos':channel.total_video_count()})
-        c.update({'active_videos':channel.active_video_count()})
+        c.update({'id': channel.get_id()})
+        c.update({'name': channel.get_name()})
+        c.update({'owner': channel.get_owner_username()})
+        c.update({'total_videos': channel.total_video_count()})
+        c.update({'active_videos': channel.active_video_count()})
         channels_array.append(c)
 
-    return render_template('web/channel_edit.html', form=form, channels=channels_array)
+
+    return render_template('web/channel_edit.html', channels=channels_array, form=form,
+                           selected_channel=selected_channel, videos=channel_videos)
 
 @bp.route('/controller', methods=['GET', 'POST'])
 @login_required
@@ -195,7 +277,11 @@ def controller():
     array_endpoints = []
     now = datetime.utcnow()
     for endpoint in endpoints:
-        delta_s = (now - endpoint.last_seen).seconds
+        if now > endpoint.last_seen:
+            delta_s = (now - endpoint.last_seen).seconds
+        else:
+            delta_s = 0
+
         if delta_s < endpoint_expiry_seconds:
             active_endpoints.append(endpoint)
             array_endpoints.append([endpoint.uuid,
