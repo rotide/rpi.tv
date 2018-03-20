@@ -3,6 +3,7 @@
 
 {% block app_content %}
 <script type="text/javascript" src="{{ url_for('web.static', filename='filter.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('web.static', filename='checkbox.js') }}"></script>
 
 <div>
     <h1>Create Channel</h1>
@@ -20,26 +21,30 @@
         <hr>
         <div class="row">
             <div class="col-md-4">
-                <label for="textFilterDirectory">Directory Filter</label>
-                <input class="form-control" type="text" id="textFilterDirectory" onkeyup="filter()"><br>
-                <label for="textFilterVideo">Video Filter</label>
-                <input class="form-control" type="text" id="textFilterVideo" onkeyup="filter()">
+                <label for="filterTextDirectory">Directory Filter</label>
+                <input class="form-control" type="text" id="filterTextDirectory" onkeyup="filter()"><br>
+                <label for="filterTextFile">Video Filter</label>
+                <input class="form-control" type="text" id="filterTextFile" onkeyup="filter()">
+                <button type="button" onClick="checkAllVisible(true)">Check</button>
+                <button type="button" onClick="checkAllVisible(false)">UnCheck</button>
             </div>
         </div>
         <br>
-        <table class="table table-condensed" id="search">
+        <table class="table table-condensed" id="filterable">
             <thead></thead>
             <tbody>
                 {% for dir, videos in dirs.items() %}
-                <tr>
-                    <td id="directory">
-                        <b>{{ dir }}</b>
+                <tr id="directory-container">
+                    <td>
+                        <div class="checkbox">
+                            <input type="checkbox" onClick="checkMatches(this)" name="{{ dir }}"><b>{{ dir }}</b>
+                        </div>
                         <table>
                             {% for video in videos %}
-                            <tr>
-                                <td id="video">
+                            <tr id="file-container">
+                                <td>
                                     <div class="checkbox">
-                                        <input type="checkbox" name="{{ video[0] }}" value="checked">{{ video[1] }}
+                                        &nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" name="{{ video[0] }}" value="checked" id="file">{{ video[1] }}
                                     </div>
                                 </td>
                             </tr>
