@@ -3,6 +3,58 @@ function isHidden(o) {
 }
 
 function checkMatches(parent) {
+    var element, inputs, checkboxes, fileCheckboxes, i, splitId;
+
+    element = document.getElementById("filterable");
+    inputs = element.getElementsByTagName("input");
+    fileCheckboxes = document.getElementsByName("file");
+
+    checkboxesToCheck = [];
+    for (i = 0; i < fileCheckboxes.length; i++) {
+        if (fileCheckboxes[i].dataset.directory == parent.dataset.directory) {
+            checkboxesToCheck.push(fileCheckboxes[i]);
+        }
+    }
+
+    for (i = 0; i < checkboxesToCheck.length; i++) {
+        if (isHidden(checkboxesToCheck[i])) {
+            // If checkbox is hidden and we touch the parent's checkbox, uncheck the hidden child.
+            checkboxesToCheck[i].checked = false;
+        } else {
+            // If checkbox is visible and we touch the parent's checkbox, match whatever the parent's checkbox state is.
+            checkboxesToCheck[i].checked = parent.checked;
+        }
+    }
+}
+
+function checkAllVisible(bool) {
+    var check, element, inputs, i, substr_file;
+
+    substr_file = "file:";
+
+    if (bool) {
+        check = true;
+    } else {
+        check = false;
+    }
+
+    element = document.getElementById("filterable");
+    inputs = element.getElementsByTagName("input");
+
+    for (i = 0; i < inputs.length; i++) {
+        if (inputs[i].getAttribute("type") == "checkbox") {
+            if (inputs[i].name == "file") {
+                if (isHidden(inputs[i])) {
+                    // do nothing
+                } else {
+                    inputs[i].checked = check;
+                }
+            }
+        }
+    }
+}
+
+function checkMatches_old(parent) {
     var checkbox, i;
 
     // Get all checkboxes with the same name as their parent.
@@ -19,7 +71,7 @@ function checkMatches(parent) {
     }
 }
 
-function checkAllVisible(bool) {
+function checkAllVisible_old(bool) {
     var check, element, input, i;
 
     if (bool) {

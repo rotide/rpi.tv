@@ -55,21 +55,22 @@ def channel_create():
     if form.validate_on_submit():
         channel = Channel(name=form.name.data, user_id=current_user.id)
 
-        #videos = Video.query.all()
-        videos = Video.query.filter_by(active=True)
-        video_count = 0
-        for video in videos:
-            if 'checked' in request.form.getlist(str(video.id)):
-                # While the model explicitly states video.id is stored, we pass the video object.
-                channel.videos.append(video)
-                video_count += 1
+        if 'file' in request.form.keys():
+            selected_video_ids = request.form.getlist('file')
 
-        try:
-            db.session.add(channel)
-            db.session.commit()
-            flash('Channel ' + form.name.data + ' with ' + str(video_count) + ' videos created successfully.')
-        except:
-            flash('Channel creation encountered an error during database operation.')
+            for id in selected_video_ids:
+                video = Video.query.filter_by(active=True, id=id).first()
+                if video is not None:
+                    channel.videos.append(video)
+
+            try:
+                db.session.add(channel)
+                db.session.commit()
+                flash('Channel ' + str(channel.get_name()) + ' with ' + str(channel.total_video_count()) + ' videos created successfully.')
+            except:
+                flash('Channel creation encountered an error during database operation.')
+        else:
+            flash('No videos selected. Channel creation aborted.')
 
         return redirect(url_for('web.channel_create'))
     return render_template('web/channel_create.html', form=form, dirs=dict)

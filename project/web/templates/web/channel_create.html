@@ -21,12 +21,13 @@
         <hr>
         <div class="row">
             <div class="col-md-4">
-                <label for="filterTextDirectory">Directory Filter</label>
+                <label for="filterTextDirectory">Filter by Directory</label>
                 <input class="form-control" type="text" id="filterTextDirectory" onkeyup="filter()"><br>
-                <label for="filterTextFile">Video Filter</label>
-                <input class="form-control" type="text" id="filterTextFile" onkeyup="filter()">
-                <button type="button" onClick="checkAllVisible(true)">Check</button>
-                <button type="button" onClick="checkAllVisible(false)">UnCheck</button>
+                <label for="filterTextFile">Filter by Video Filename</label>
+                <input class="form-control" type="text" id="filterTextFile" onkeyup="filter()"><br>
+                <label for="checkAllButton">All Visible Videos</label><br>
+                <button type="button" class="btn btn-default" onClick="checkAllVisible(true)" id="checkAllButton">Check</button>
+                <button type="button" class="btn btn-default" onClick="checkAllVisible(false)">UnCheck</button>
             </div>
         </div>
         <br>
@@ -34,17 +35,17 @@
             <thead></thead>
             <tbody>
                 {% for dir, videos in dirs.items() %}
-                <tr id="directory-container">
+                <tr data-type="directory" data-directory="{{ dir }}">
                     <td>
                         <div class="checkbox">
-                            <input type="checkbox" onClick="checkMatches(this)" name="{{ dir }}"><b>{{ dir }}</b>
+                            <input type="checkbox" data-directory="{{ dir }}" onClick="checkMatches(this)" name="directory" value="{{ dir }}"><b>{{ dir }}</b>
                         </div>
                         <table>
-                            {% for video in videos %}
-                            <tr id="file-container">
+                            {% for video_id, video_filename in videos %}
+                            <tr data-type="file" data-filename="{{ video_filename }}">
                                 <td>
                                     <div class="checkbox">
-                                        &nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" name="{{ video[0] }}" value="checked" id="file">{{ video[1] }}
+                                        &nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" data-directory="{{ dir }}" name="file" value="{{ video_id }}">{{ video_filename }}
                                     </div>
                                 </td>
                             </tr>
