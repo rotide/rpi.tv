@@ -2,7 +2,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 
 {% block app_content %}
-<script type="text/javascript" src="{{ url_for('web.static', filename='video-filter.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('web.static', filename='filter.js') }}"></script>
 
 <div>
     <h1>Edit Channel</h1>
@@ -17,13 +17,15 @@
                         <label for="channelSelect">Select Channel</label>
                         <select name="select" class="form-control" id="channelSelect">
                             {% if channels %}
-                                {% for channel in channels %}
-                                    {% if selected_channel and selected_channel|int == channel.id|int %}
-                            <option value="{{ channel.id }}" selected>[id:{{ channel.id }}] {{ channel.name }} ({{ channel.owner }})</option>
-                                    {% else %}
-                            <option value="{{ channel.id }}">[id:{{ channel.id }}] {{ channel.name }} ({{ channel.owner }})</option>
-                                    {% endif %}
-                                {% endfor %}
+                            {% for channel_id, channel_name, channel_owner, channel_total, channel_active in channels %}
+                            {% if selected_channel and selected_channel|int == channel_id|int %}
+                            <option value="{{ channel_id }}" selected>{{ channel_name }} ({{ channel_owner }})</option>
+                            {% else %}
+                            <option value="{{ channel_id }}">{{ channel_name }} ({{ channel_owner }})</option>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <option>No Channels Found</option>
                             {% endif %}
                         </select>
                     </div>
@@ -36,12 +38,12 @@
             </div>
         </div>
         {% if selected_channel %}
-            {% for channel in channels %}
-                {% if selected_channel|int == channel.id|int %}
+        {% for channel_id, channel_name, channel_owner, channel_total, channel_active in channels %}
+        {% if selected_channel|int == channel_id|int %}
         <div class="row">
             <div class="container">
                 <ul class="list-group">
-                    <h2 class="list-group-item list-group-item-info">{{ channel.name }}</h2>
+                    <h2 class="list-group-item list-group-item-info">{{ channel_name }}</h2>
                 </ul>
             </div>
         </div>
@@ -49,8 +51,8 @@
             <div class="form-group">
                 <div class="col-md-4">
                     <label for="text-rename">Rename Channel</label>
-                    <input type="text" class="form-control" name="text-rename-{{ channel.id }}" value="{{ channel.name }}" id="text-rename">
-                    <input type="submit" class="btn btn-default" value="Rename" name="button-rename-{{ channel.id }}">
+                    <input type="text" class="form-control" name="text-rename-{{ channel_id }}" value="{{ channel_name }}" id="text-rename">
+                    <input type="submit" class="btn btn-default" value="Rename" name="button-rename-{{ channel_id }}">
                 </div>
             </div>
         </div>
@@ -58,15 +60,13 @@
         <div class="row">
             <div class="form-group">
                 <div class="col-md-4">
-                    <label for="buttons">Additional Controls</label><br>
-                    <input type="submit" class="btn btn-default" value="Delete" name="button-delete-{{ channel.id }}" id="buttons">
-                    <input type="submit" class="btn btn-default" value="Add" name="button-add-{{ channel.id }}">
-                    <input type="submit" class="btn btn-default" value="Remove" name="button-remove-{{ channel.id }}">
+                    <label for="deleteButton">Delete Channel</label><br>
+                    <input type="submit" class="btn btn-default" value="Delete" name="button-delete-{{ channel_id }}" id="deleteButton">
                 </div>
             </div>
         </div>
-                {% endif %}
-            {% endfor %}
+        {% endif %}
+        {% endfor %}
         {% else %}
         <div class="row">
             <div class="container">
@@ -81,27 +81,55 @@
             </div>
         </div>
         {% endif %}
-        {% if videos %}
         <hr>
-        <h3>Channel Videos</h3>
         <div class="row">
-            <div class="col-md-12">
-                {% for video_path, video_info in videos.items() %}
-                <b>{{ video_path }}</b><br>
-                    {% for id, filename, active in video_info %}
-                        {% if active %}
-                        <font color="black">{{ filename }}</font><br>
+            {% if channel_videos %}
+            <div class="col-md-6" id="removes">
+                <label for="txtCurDir">Filter by Directory</label>
+                <input class="form-control" type="text" id="txtCurDir" onkeyup="filter('txtCurDir', 'txtCurFile', 'divCurDir', 'divCurFile')"><br>
+                <label for="txtCurFile">Filter by Video Filename</label>
+                <input class="form-control" type="text" id="txtCurFile" onkeyup="filter('txtCurDir', 'txtCurFile', 'divCurDir', 'divCurFile')"><br>
+                <label for="removeButton">Remove Selected Videos</label><br>
+                <input type="submit" class="btn btn-default" value="Remove" name="button-remove-{{ selected_channel }}" id="removeButton">
+                <h3>Current Videos</h3>
+                {% for dir, video_info in channel_videos.items() %}
+                <div data-type="divCurDir" data-parent="{{ dir }}" class="container">
+                    <input type="checkbox" data-directory="{{ dir }}" onClick="checkMatches(this)" name="directory" value="rem-{{ dir }}"> <b>{{ dir }}</b>
+                    {% for video_id, video_filename, video_active in video_info %}
+                    <div data-type="divCurFile" data-child="{{ video_filename }}" class="container">
+                        {% if video_active %}
+                        <input type="checkbox" data-family="checkbox-child" data-directory="{{ dir }}" name="file-rem" value="{{ video_id }}"> {{ video_filename }}<br>
                         {% else %}
-                        <font color="red">{{ filename }} [INACTIVE]</font><br>
+                        <input type="checkbox" data-family="checkbox-child" data-directory="{{ dir }}" name="file-rem" value="{{ video_id }}"><font color="red"> {{ video_filename }} [INAVTIVE]</font><br>
                         {% endif %}
+                    </div>
                     {% endfor %}
+                </div>
                 {% endfor %}
             </div>
+            {% endif %}
+            {% if available_videos %}
+            <div class="col-md-6" id="adds">
+                <label for="txtAvailDir">Filter by Directory</label>
+                <input class="form-control" type="text" id="txtAvailDir" onkeyup="filter('txtAvailDir', 'txtAvailFile', 'divAvailDir', 'divAvailFile')"><br>
+                <label for="txtAvailFile">Filter by Video Filename</label>
+                <input class="form-control" type="text" id="txtAvailFile" onkeyup="filter('txtAvailDir', 'txtAvailFile', 'divAvailDir', 'divAvailFile')"><br>
+                <label for="addButton">Add Selected Videos</label><br>
+                <input type="submit" class="btn btn-default" value="Add" name="button-add-{{ selected_channel }}" id="addButton">
+                <h3>Available Videos</h3>
+                {% for dir, video_list in available_videos %}
+                <div data-type="divAvailDir" data-parent="{{ dir }}" class="container">
+                    <input type="checkbox" data-directory="{{ dir }}" onClick="checkMatches(this)" name="directory" value="add-{{ dir }}"><b> {{ dir }}</b>
+                    {% for video_id, video_filename in video_list %}
+                    <div data-type="divAvailFile" data-child="{{ video_filename }}" class="container">
+                        <input type="checkbox" data-family="checkbox-child" data-directory="{{ dir }}" name="file-add" value="{{ video_id }}"> {{ video_filename }}<br>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </form>
 </div>
-
-
-
 {% endblock %}

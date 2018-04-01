@@ -10,6 +10,7 @@
 </div>
 <div class="form">
     <form class="form" method="post" role="form">
+        {% if dirs %}
         {{ form.hidden_tag() }}
         <div class="row">
             <div class="col-md-4">
@@ -17,46 +18,37 @@
                 {{ wtf.form_field(form.submit) }}
             </div>
         </div>
-        {% if dirs %}
         <hr>
         <div class="row">
             <div class="col-md-4">
-                <label for="filterTextDirectory">Filter by Directory</label>
-                <input class="form-control" type="text" id="filterTextDirectory" onkeyup="filter()"><br>
-                <label for="filterTextFile">Filter by Video Filename</label>
-                <input class="form-control" type="text" id="filterTextFile" onkeyup="filter()"><br>
+                <label for="txtDir">Filter by Directory</label>
+                <input class="form-control" type="text" id="txtDir" onkeyup="filter('txtDir', 'txtFile', 'div-dir', 'div-file')"><br>
+                <label for="txtFile">Filter by Video Filename</label>
+                <input class="form-control" type="text" id="txtFile" onkeyup="filter('txtDir', 'txtFile', 'div-dir', 'div-file')"><br>
                 <label for="checkAllButton">All Visible Videos</label><br>
                 <button type="button" class="btn btn-default" onClick="checkAllVisible(true)" id="checkAllButton">Check</button>
                 <button type="button" class="btn btn-default" onClick="checkAllVisible(false)">UnCheck</button>
             </div>
         </div>
         <br>
-        <table class="table table-condensed" id="filterable">
-            <thead></thead>
-            <tbody>
+        <div class="row">
+            <div class="col-md-4">
                 {% for dir, videos in dirs.items() %}
-                <tr data-type="directory" data-directory="{{ dir }}">
-                    <td>
-                        <div class="checkbox">
-                            <input type="checkbox" data-directory="{{ dir }}" onClick="checkMatches(this)" name="directory" value="{{ dir }}"><b>{{ dir }}</b>
-                        </div>
-                        <table>
-                            {% for video_id, video_filename in videos %}
-                            <tr data-type="file" data-filename="{{ video_filename }}">
-                                <td>
-                                    <div class="checkbox">
-                                        &nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" data-directory="{{ dir }}" name="file" value="{{ video_id }}">{{ video_filename }}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </table>
-                    </td>
-                </tr>
+                <div data-type="div-dir" data-parent="{{ dir }}" class="container">
+                    <input type="checkbox" data-directory="{{ dir }}" onClick="checkMatches(this)" name="directory" value="{{ dir }}"> <b>{{ dir }}</b>
+                    {% for video_id, video_filename in videos %}
+                    <div data-type="div-file" data-child="{{ video_filename }}" class="container">
+                        <input type="checkbox" data-family="checkbox-child" data-directory="{{ dir }}" name="file" value="{{ video_id }}"> {{ video_filename }}
+                    </div>
+                    {% endfor %}
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
-        {% endif %}
+                {% else %}
+                <p>No Videos Found.</p>
+                <p>Unable to create channels until videos have been added via a scan.</p>
+                {% endif %}
+            </div>
+        </div>
     </form>
 </div>
 {% endblock %}

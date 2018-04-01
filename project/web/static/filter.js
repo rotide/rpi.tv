@@ -1,63 +1,37 @@
-function filter() {
-    var inputDir, inputFile, filterDir, filterFile, found, element, tag, i;
+function filter(iParent, iChild, tParent, tChild) {
+    var inputParent, inputChild, filterParent, filterChild, found, tags, type, i;
 
-    inputDir = document.getElementById("filterTextDirectory");
-    inputFile = document.getElementById("filterTextFile");
-    filterDir = inputDir.value.replace(/'/g, "").toUpperCase();
-    filterFile = inputFile.value.replace(/'/g, "").toUpperCase();
+    inputParent = document.getElementById(iParent);
+    inputChild = document.getElementById(iChild);
+    filterParent = inputParent.value.replace(/'/g, "").toUpperCase();
+    filterChild = inputChild.value.replace(/'/g, "").toUpperCase();
 
-    element = document.getElementById("filterable");
-    tag = element.getElementsByTagName("tr");
+    // Get all DIV tags.
+    tags = document.getElementsByTagName("div");
 
-    for (i = 0; i < tag.length; i++) {
-        found = false;
+    for (i = 0; i < tags.length; i++) {
+        // Get TYPE data from tag (HTML: data-type attribute).
+        type = tags[i].dataset.type;
 
-        if (tag[i].dataset.type == "directory") {
-            if (tag[i].dataset.directory.replace(/'/g, "").toUpperCase().indexOf(filterDir) > -1) {
-                found = true;
-            }
-        } else if (tag[i].dataset.type == "file") {
-            if (tag[i].dataset.filename.replace(/'/g, "").toUpperCase().indexOf(filterFile) > -1) {
-                found = true;
-            }
-        }
-
-        if (found) {
-            tag[i].style.display = "";
-        } else {
-            tag[i].style.display = "none";
-        }
-    }
-}
-
-function filter_old() {
-    var inputDir, inputFile, filterDir, filterFile, found, element, tag, i;
-
-    inputDir = document.getElementById("filterTextDirectory");
-    inputFile = document.getElementById("filterTextFile");
-    filterDir = inputDir.value.replace(/'/g, "").toUpperCase();
-    filterFile = inputFile.value.replace(/'/g, "").toUpperCase();
-
-    element = document.getElementById("filterable");
-    tag = element.getElementsByTagName("tr");
-
-    for (i = 0; i < tag.length; i++) {
-        if (tag[i].id == "directory-container") {
-            if (tag[i].innerHTML.replace(/'/g, "").toUpperCase().indexOf(filterDir) > -1) {
-                found = true;
-            }
-        }
-        if (tag[i].id == "file-container") {
-            if (tag[i].innerHTML.replace(/'/g, "").toUpperCase().indexOf(filterFile) > -1) {
-                found = true;
-            }
-        }
-
-        if (found) {
-            tag[i].style.display = "";
+        // If TYPE is defined as tParent or tChild, continue.
+        if (type == tParent || type == tChild) {
             found = false;
-        } else {
-            tag[i].style.display = "none";
+
+            if (type == tParent) {
+                if (tags[i].dataset.parent.replace(/'/g, "").toUpperCase().indexOf(filterParent) > -1) {
+                    found = true;
+                }
+            } else if (type == tChild) {
+                if (tags[i].dataset.child.replace(/'/g, "").toUpperCase().indexOf(filterChild) > -1) {
+                    found = true;
+                }
+            }
+
+            if (found) {
+                tags[i].style.display = "";
+            } else {
+                tags[i].style.display = "none";
+            }
         }
     }
 }

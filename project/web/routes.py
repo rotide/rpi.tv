@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 from flask import request, render_template, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
@@ -24,8 +23,10 @@ def index():
 def scan():
     form = ScanForm()
 
-    active = db.session.execute(db.session.query(Video).filter_by(active=True).statement.with_only_columns([func.count()]).order_by(None)).scalar()
-    inactive = db.session.execute(db.session.query(Video).filter_by(active=False).statement.with_only_columns([func.count()]).order_by(None)).scalar()
+    active = db.session.execute(db.session.query(Video).filter_by(active=True)
+                                .statement.with_only_columns([func.count()]).order_by(None)).scalar()
+    inactive = db.session.execute(db.session.query(Video).filter_by(active=False)
+                                  .statement.with_only_columns([func.count()]).order_by(None)).scalar()
 
     if form.scan.data:
         video_scanner.apply_async()
@@ -48,7 +49,7 @@ def channel_create():
             dict[directory.path] = []
             for video in directory.videos:
                 if video.is_active():
-                    filename = os.path.basename(video.filepath)
+                    filename = video.get_filename()
                     dict[directory.path].append([video.id, filename])
             dict[directory.path].sort(key=lambda x: x[1])
 
@@ -75,72 +76,6 @@ def channel_create():
         return redirect(url_for('web.channel_create'))
     return render_template('web/channel_create.html', form=form, dirs=dict)
 
-@bp.route('/channeleditorold', methods=['GET', 'POST'])
-@login_required
-def channel_edit_old():
-    form = ChannelEditForm()
-
-    if form.validate_on_submit():
-        for item in request.form:
-            print(item)
-
-        # If a radio button was selected
-        #if 'options' in request.form:
-        #    selected = request.form['options']
-
-        # If the DELETE button was pressed.
-        for form_item in request.form:
-            if 'button-' in form_item:
-                # Get action associated with button press
-                button_action = form_item.split('-')[1]
-                # Get channel associated with button press
-                button_channel = form_item.split('-')[2]
-
-                if button_action == 'delete':
-                    # Get channel data and verify it's for the current user (input validation and authorization)
-                    channel = Channel.query.filter_by(id=button_channel, user_id=current_user.id).first()
-
-                    # Get any endpoints which may be currently set to the channel to be deleted.
-                    endpoint = Endpoint.query.filter_by(current_channel_id=button_channel).first()
-                    if endpoint is not None:
-                        # An endpoint is tuned in to the channel to be deleted, notify user.
-                        flash('An endpoint is set to your selected channel.  It can not be deleted at this time.')
-                    else:
-                        if channel is not None:
-                            # Clear channel's history from database.
-                            for history in History.query.filter_by(channel_id=button_channel).all():
-                                db.session.delete(history)
-                            # Clear channel from database.
-                            db.session.delete(channel)
-                            # Commit database changes.
-                            db.session.commit()
-                            flash('Channel deleted: ' + str(channel.name))
-
-                elif button_action == 'rename':
-                    rename_to = request.form['text-rename-' + str(button_channel)]
-                    if rename_to.strip() is not '':
-                        # Get channel from database.
-                        channel = Channel.query.filter_by(id=button_channel, user_id=current_user.id).first()
-                        # Get channel's name for alerting purposes.
-                        rename_from = channel.name
-                        # Set channel's new name.
-                        channel.set_name(rename_to)
-                        # Commit database changes.
-                        db.session.commit()
-                        flash('Channel renamed from "' + rename_from + '" to "' + rename_to + '".')
-
-    channels = Channel.query.filter_by(user_id=current_user.id)
-    channels_array = []
-    for channel in channels:
-        c = {}
-        c.update({'id':channel.id})
-        c.update({'name':channel.name})
-        c.update({'total_videos':channel.total_video_count()})
-        c.update({'active_videos':channel.active_video_count()})
-        channels_array.append(c)
-
-    return render_template('web/channel_edit.html', form=form, channels=channels_array)
-
 @bp.route('/channeledit', methods=['GET', 'POST'])
 @login_required
 def channel_edit():
@@ -148,7 +83,9 @@ def channel_edit():
 
     # Initialize variables which will be passed to render_template.
     selected_channel = None
-    channel_videos = {}
+    channel_videos_dict = {}
+    available_videos_dict = {}
+    available_videos_list = []
 
     if form.validate_on_submit():
         print(request.form)
@@ -211,6 +148,30 @@ def channel_edit():
                     db.session.commit()
                     flash('Channel renamed from "' + rename_from + '" to "' + rename_to + '".')
 
+        elif button_action == 'add':
+            print('BUTTON: ADD')
+            print('ADD: ' + str(request.form.getlist('file-add')))
+            channel = Channel.query.filter_by(id=button_channel, user_id=current_user.id).first()
+            if channel is not None:
+                for video_id in request.form.getlist('file-add'):
+                    video = Video.query.filter_by(id=video_id, active=True).first()
+                    if video is not None:
+                        channel.videos.append(video)
+                db.session.commit()
+                flash('Videos added to channel successfully.')
+
+        elif button_action == 'remove':
+            print('BUTTON: REMOVE')
+            print('REMOVE: ' + str(request.form.getlist('file-rem')))
+            channel = Channel.query.filter_by(id=button_channel, user_id=current_user.id).first()
+            if channel is not None:
+                for video_id in request.form.getlist('file-rem'):
+                    video = Video.query.filter_by(id=video_id, active=True).first()
+                    if video is not None:
+                        channel.videos.remove(video)
+                db.session.commit()
+                flash('Videos removed from channel successfully.')
+
         # Pull channel/video information from database for web page rendering if a channel was selected.
         if selected_channel:
             # Get data for selected channel ID.
@@ -219,49 +180,75 @@ def channel_edit():
             if channel is not None:
                 # Generate array of video information from selected channel data
                 video_array = [
-                    [os.path.dirname(video.filepath),   # Video Directory
-                     video.id,                          # Video ID
-                     os.path.basename(video.filepath),  # Video Filename
-                     video.active]                      # Active (bool)
+                    [video.get_directory_path(),    # Video Directory
+                     video.get_id(),                # Video ID
+                     video.get_filename(),          # Video Filename
+                     video.is_active()]             # Active (bool)
                     for video in channel.videos
                 ]
 
                 for video in video_array:
                     # If video directory not already in channel_videos...
-                    if video[0] not in channel_videos.keys():
+                    if video[0] not in channel_videos_dict.keys():
                         # Create directory key in dict.
-                        channel_videos[video[0]] = []
+                        channel_videos_dict[video[0]] = []
                     # Append video data to dict key (folder).
-                    channel_videos[video[0]].append([video[1], video[2], video[3]])
+                    channel_videos_dict[video[0]].append([video[1], video[2], video[3]])
 
                 # Sort each set of videos for each directory.
-                for directory in channel_videos.keys():
-                    channel_videos[directory].sort(key=lambda x: x[1])
+                for directory in channel_videos_dict.keys():
+                    channel_videos_dict[directory].sort(key=lambda x: x[1])
 
-#    # Gather all Channels owned by the user.
-#    channels = Channel.query.filter_by(user_id=current_user.id).all()
+                # Get all other videos to preset to user to ADD to channel
+                directories = Directory.query.all()
+                if directories is not None:
+                    #for directory in directories:
+                    #    video_dict = {}
+                    #    for video in directory.get_active_videos():
+                    #        video_dict[video.get_filename()] = {'id': video.get_id(),
+                    #                                            'filename': video.get_filename()}
 
-#    # Generate channel list which will be displayed to the user for channel selection.
-#    channels_array = []
-#    for channel in channels:
-#        channels_array.append([channel.id,
-#                               channel.name,
-#                               channel.owner.username])
+                    #    available_videos_dict[directory.get_path()] = {'directory': directory.get_path()}
+                    #    available_videos_dict[directory.get_path()].update({'videos': video_dict})
 
+                    for directory in directories:
+                        # Only parse directory if it has active videos.
+                        if directory.has_active_videos():
+                            # Get/Put every active video in the directory into a list.
+                            directory_videos = []
+                            for v in directory.get_active_videos():
+                                # Each Video will consist of the video ID and the Filename.
+                                video = [v.get_id(), v.get_filename()]
+                                # Add Video to list directory_videos.
+                                directory_videos.append(video)
+                            # Sort directory_videos by Video Filename (ignore case).
+                            directory_videos = sorted(directory_videos, key=lambda video: video[1].lower())
+                            # Add the Directory and its Videos to the available_videos_list.
+                            available_videos_list.append([directory.get_path(),directory_videos])
+                    # Sort available_videos_list by Directory Path (ignore case).
+                    available_videos_list = sorted(available_videos_list, key=lambda directory: directory[0].lower())
+
+    # Gather all Channels owned by the user.
     channels = Channel.query.filter_by(user_id=current_user.id).all()
-    channels_array = []
-    for channel in channels:
-        c = {}
-        c.update({'id': channel.get_id()})
-        c.update({'name': channel.get_name()})
-        c.update({'owner': channel.get_owner_username()})
-        c.update({'total_videos': channel.total_video_count()})
-        c.update({'active_videos': channel.active_video_count()})
-        channels_array.append(c)
 
+    channels_list = []
+    if channels is not None:
+        for channel in channels:
+            c = []
+            c.append(channel.get_id())
+            c.append(channel.get_name())
+            c.append(channel.get_owner_username())
+            c.append(channel.total_video_count())
+            c.append(channel.active_video_count())
+            channels_list.append(c)
+        channels_list = sorted(channels_list, key=lambda c: c[1].lower())
 
-    return render_template('web/channel_edit.html', channels=channels_array, form=form,
-                           selected_channel=selected_channel, videos=channel_videos)
+    return render_template('web/channel_edit.html',
+                           channels=channels_list,
+                           form=form,
+                           selected_channel=selected_channel,
+                           channel_videos=channel_videos_dict,
+                           available_videos=available_videos_list)
 
 @bp.route('/controller', methods=['GET', 'POST'])
 @login_required
@@ -275,7 +262,7 @@ def controller():
     channels = Channel.query.all()
 
     active_endpoints = []
-    array_endpoints = []
+    endpoints_dict = {}
     now = datetime.utcnow()
     for endpoint in endpoints:
         if now > endpoint.last_seen:
@@ -284,18 +271,28 @@ def controller():
             delta_s = 0
 
         if delta_s < endpoint_expiry_seconds:
-            active_endpoints.append(endpoint)
-            array_endpoints.append([endpoint.uuid,
-                                    endpoint.name,
-                                    endpoint.current_state,
-                                    endpoint.queued_video_id])
+            current_video = Video.query.filter_by(id=endpoint.get_current_video()).first()
+            next_video = Video.query.filter_by(id=endpoint.get_queued_video()).first()
 
-    array_channels = []
+            active_endpoints.append(endpoint)
+            e = {}
+            e['uuid'] = endpoint.get_uuid()
+            e['name'] = endpoint.get_name()
+            e['current_state'] = endpoint.get_current_state()
+            e['queued_video'] = endpoint.get_queued_video()
+            e['current_channel'] = endpoint.get_current_channel()
+            e['current_video_filename'] = current_video.get_filename()
+            e['next_video_filename'] = next_video.get_filename()
+            endpoints_dict['endpoint.get_uuid()'] = e
+
+    channels_dict = {}
     for channel in channels:
         if channel.has_active():
-            array_channels.append([channel.id,
-                                   channel.name,
-                                   channel.owner.username])
+            c = {}
+            c['id'] = channel.get_id()
+            c['name'] = channel.get_name()
+            c['owner'] = channel.get_owner_username()
+            channels_dict[channel.get_id()] = c
 
     if form.validate_on_submit():
         for endpoint in active_endpoints:
@@ -339,4 +336,4 @@ def controller():
                 except Exception as e:
                     flash('Error: %s' % str(e))
 
-    return render_template('web/controller.html', form=form, endpoints=array_endpoints, channels=array_channels)
+    return render_template('web/controller.html', form=form, endpoints=endpoints_dict, channels=channels_dict)

@@ -9,21 +9,26 @@
             {{ form.hidden_tag() }}
 
             {% if endpoints %}
-            {% for endpoint in endpoints %}
+            {% for key,endpoint in endpoints.items() %}
             <div class="panel panel-info">
                 <div class="panel-heading">
                     <h3 class="panel-title">
-                        {{ endpoint[1] }}
+                        <div title="UUID: {{ endpoint['uuid'] }}">{{ endpoint['name'] }}</div>
                     </h3>
                 </div>
                 <div class="panel-body">
                     <div class="row">
                         <div class="col-md-12">
                             <div class="control-group">
-                                <select name="select-{{ endpoint[0] }}" class="form-control">
+                                <label for="select-{{ endpoint['uuid'] }}">Select Channel</label>
+                                <select name="select-{{ endpoint['uuid'] }}" class="form-control">
                                     {% if channels %}
-                                    {% for channel in channels %}
-                                    <option value="{{ channel[0] }}">{{ channel[1] }} ({{ channel[2] }})</option>
+                                    {% for key,channel in channels.items() %}
+                                    {% if endpoint['current_channel']|int == channel['id']|int %}
+                                    <option value="{{ channel['id'] }}" selected>{{ channel['name'] }} ({{ channel['owner'] }})</option>
+                                    {% else %}
+                                    <option value="{{ channel['id'] }}">{{ channel['name'] }} ({{ channel['owner'] }})</option>
+                                    {% endif %}
                                     {% endfor %}
                                     {% endif %}
                                 </select>
@@ -33,19 +38,32 @@
                     <br>
                     <div class="row">
                         <div class="col-md-12">
-                            <input type="submit" class="btn btn-default" value="Play" name="play-{{ endpoint[0] }}">
-                            <input type="submit" class="btn btn-default" value="Pause" name="pause-{{ endpoint[0] }}">
-                            <input type="submit" class="btn btn-default" value="Stop" name="stop-{{ endpoint[0] }}">
-                            <input type="submit" class="btn btn-default" value="Skip" name="skip-{{ endpoint[0] }}">
-                            <input type="submit" class="btn btn-default" value="Set Channel" name="chan-{{ endpoint[0] }}">
+                            {% if endpoint['current_state'] == 'PLAY' %}
+                            <input type="submit" class="btn disabled" value="Play" name="play-{{ endpoint['uuid'] }}">
+                            {% else %}
+                            <input type="submit" class="btn btn-default" value="Play" name="play-{{ endpoint['uuid'] }}">
+                            {% endif %}
+                            {% if endpoint['current_state'] == 'PAUSE' %}
+                            <input type="submit" class="btn disabled" value="Pause" name="pause-{{ endpoint['uuid'] }}">
+                            {% else %}
+                            <input type="submit" class="btn btn-default" value="Pause" name="pause-{{ endpoint['uuid'] }}">
+                            {% endif %}
+                            {% if endpoint['current_state'] == 'STOP' %}
+                            <input type="submit" class="btn disabled" value="Stop" name="stop-{{ endpoint['uuid'] }}">
+                            {% else %}
+                            <input type="submit" class="btn btn-default" value="Stop" name="stop-{{ endpoint['uuid'] }}">
+                            {% endif %}
+                            <input type="submit" class="btn btn-default" value="Skip" name="skip-{{ endpoint['uuid'] }}">
+                            <input type="submit" class="btn btn-default" value="Set Channel" name="chan-{{ endpoint['uuid'] }}">
                         </div>
                     </div>
                     <br>
                     <div class="row">
                         <div class="col-md-12">
-                            UUID: {{ endpoint[0] }}<br>
-                            State: {{ endpoint[2] }}<br>
-                            Next: {{ endpoint[3] }}
+                            <table>
+                                <tr><td>Current:&nbsp;&nbsp;</td><td><font face="monospace" size="2" title="{{ endpoint['current_video_filename'] }}">{{ endpoint['current_video_filename'][:50] }}</font></td></tr>
+                                <tr><td>Next:&nbsp;&nbsp;</td><td><font face="monospace" size="2" title="{{ endpoint['next_video_filename'] }}">{{ endpoint['next_video_filename'][:50] }}</font></td></tr>
+                            </table>
                         </div>
                     </div>
                 </div>

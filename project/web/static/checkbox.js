@@ -3,34 +3,30 @@ function isHidden(o) {
 }
 
 function checkMatches(parent) {
-    var element, inputs, checkboxes, fileCheckboxes, i, splitId;
+    var checkboxes, children, i;
 
-    element = document.getElementById("filterable");
-    inputs = element.getElementsByTagName("input");
-    fileCheckboxes = document.getElementsByName("file");
+    children = document.querySelectorAll("[data-family='checkbox-child']");
 
-    checkboxesToCheck = [];
-    for (i = 0; i < fileCheckboxes.length; i++) {
-        if (fileCheckboxes[i].dataset.directory == parent.dataset.directory) {
-            checkboxesToCheck.push(fileCheckboxes[i]);
+    checkboxes = [];
+    for (i = 0; i < children.length; i++) {
+        if (children[i].dataset.directory == parent.dataset.directory) {
+            checkboxes.push(children[i]);
         }
     }
 
-    for (i = 0; i < checkboxesToCheck.length; i++) {
-        if (isHidden(checkboxesToCheck[i])) {
+    for (i = 0; i < checkboxes.length; i++) {
+        if (isHidden(checkboxes[i])) {
             // If checkbox is hidden and we touch the parent's checkbox, uncheck the hidden child.
-            checkboxesToCheck[i].checked = false;
+            checkboxes[i].checked = false;
         } else {
             // If checkbox is visible and we touch the parent's checkbox, match whatever the parent's checkbox state is.
-            checkboxesToCheck[i].checked = parent.checked;
+            checkboxes[i].checked = parent.checked;
         }
     }
 }
 
 function checkAllVisible(bool) {
-    var check, element, inputs, i, substr_file;
-
-    substr_file = "file:";
+    var check, children, i;
 
     if (bool) {
         check = true;
@@ -38,60 +34,13 @@ function checkAllVisible(bool) {
         check = false;
     }
 
-    element = document.getElementById("filterable");
-    inputs = element.getElementsByTagName("input");
+    children = document.querySelectorAll("[data-family='checkbox-child']");
 
-    for (i = 0; i < inputs.length; i++) {
-        if (inputs[i].getAttribute("type") == "checkbox") {
-            if (inputs[i].name == "file") {
-                if (isHidden(inputs[i])) {
-                    // do nothing
-                } else {
-                    inputs[i].checked = check;
-                }
-            }
-        }
-    }
-}
-
-function checkMatches_old(parent) {
-    var checkbox, i;
-
-    // Get all checkboxes with the same name as their parent.
-    checkbox = document.getElementsByName(parent.name)
-
-    for (i = 0; i < checkbox.length; i++) {
-        if (isHidden(checkbox[i])) {
-            // If checkbox is hidden and we touch the parent's checkbox, uncheck the hidden child.
-            checkbox[i].checked = false;
-        } else {
-            // If checkbox is visible and we touch the parent's checkbox, match whatever the parent's checkbox state $
-            checkbox[i].checked = parent.checked;
-        }
-    }
-}
-
-function checkAllVisible_old(bool) {
-    var check, element, input, i;
-
-    if (bool) {
-        check = true;
-    } else {
-        check = false;
-    }
-
-    element = document.getElementById("filterable");
-    input = element.getElementsByTagName("input");
-
-    for (i = 0; i < input.length; i++) {
-        if (input[i].getAttribute("type") == "checkbox") {
-            if (input[i].id == "file") {
-                if (isHidden(input[i])) {
-                    // do nothing
-                } else {
-                    input[i].checked = check;
-                }
-            }
-        }
+    for (i = 0; i < children.length; i++) {
+        if (isHidden(children[i])) {
+            // do nothing
+        } else {
+            children[i].checked = check;
+        }
     }
 }

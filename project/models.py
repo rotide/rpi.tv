@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from random import randint
 from hashlib import md5
@@ -35,6 +36,12 @@ class Directory(db.Model):
             if video.is_active():
                 active_videos.append(video)
         return active_videos
+
+    def get_id(self):
+        return self.id
+
+    def get_path(self):
+        return self.path
 
 # Many to Many relationship between channels and videos.
 # Add Video to Channel: Channel.videos.append(video_id)
@@ -81,6 +88,21 @@ class Video(db.Model):
     def is_active(self):
         return self.active
 
+    def get_filepath(self):
+        return self.filepath
+
+    def get_filename(self):
+        return os.path.basename(self.filepath)
+
+    def get_id(self):
+        return self.id
+
+    def get_directory_id(self):
+        return self.directory_id
+
+    def get_directory_path(self):
+        return self.directory.path
+
 class Channel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(256))
@@ -122,10 +144,6 @@ class Channel(db.Model):
         return count
 
     def total_video_count(self):
-        #count = 0
-        #for video in self.videos:
-        #    count += 1
-        #return count
         return len(self.videos)
 
 class User(UserMixin, db.Model):
@@ -208,13 +226,20 @@ class Endpoint(db.Model):
             if video.is_active():
                 active_video_ids.append(video.id)
 
+        print("Active Videos: " + str(active_video_ids))
+
         # Create "exclusions" list.
         exclusions = []
         if len(active_video_ids) > 2:
+            query_limit = len(active_video_ids) * .8
+            if len(active_video_ids) == 3:
+                query_limit = len(active_video_ids) * .66
+            elif len(active_video_ids) == 4:
+                query_limit = len(active_video_ids) * .75
             # If more than two videos exist, get the history and current video to build exclusions.
             # First query DB for history data  for this endpoint's last played videos in the current channel.
             history = History.query.filter_by(endpoint_id=self.get_uuid(), channel_id=self.get_desired_channel()) \
-                .order_by(History.timestamp.desc()).limit(int(len(active_video_ids)*.8))
+                .order_by(History.timestamp.desc()).limit(query_limit)
             # Strip relevant data from query results.
             exclusions = [h.video_id for h in history]
             # Also add the currently playing video.
@@ -233,6 +258,8 @@ class Endpoint(db.Model):
         for video in active_video_ids:
             if video not in exclusions:
                 pool.append(video)
+
+        print("Pool: " + str(pool))
 
         # Pick a video randomly from the pool
         random_video_id = pool[randint(0, len(pool) - 1)]
